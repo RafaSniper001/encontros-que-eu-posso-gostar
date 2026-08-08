@@ -2,6 +2,24 @@
 // ESTADO E CONFIGURAÇÃO DO DASHBOARD
 // ==========================================
 const APP_KEY = "4lgkk4au";
+const OPCOES_ENCONTROS = [
+  { id: "treino-juntos", titulo: "Treino Juntos", icone: "💪" },
+  { id: "cafe-da-manha", titulo: "Café da Manhã", icone: "☕" },
+  { id: "culto", titulo: "Culto", icone: "⛪" },
+  { id: "show-cristao", titulo: "Show Cristão", icone: "🎵" },
+  { id: "piquenique", titulo: "Piquenique", icone: "🧺" },
+  { id: "futebol", titulo: "Estádio de Futebol", icone: "🏟️" },
+  { id: "boliche", titulo: "Jogar Boliche", icone: "🎳" },
+  { id: "karaoke", titulo: "Soltar a Voz no Karaokê", icone: "🎤" },
+  { id: "parque", titulo: "Passeio no Parque", icone: "🌳" },
+  { id: "jantar-especial", titulo: "Jantar Especial", icone: "🍕" },
+  { id: "cinema-casa", titulo: "Cinema em Casa", icone: "🍿" },
+  { id: "jogar-videogame", titulo: "Jogar Videogame", icone: "🎮" },
+  { id: "cozinhar-juntos", titulo: "Cozinhar Juntos", icone: "🍳" },
+  { id: "jogos-tabuleiro", titulo: "Café com Jogos de Tabuleiro", icone: "🎲" },
+  { id: "rodizio", titulo: "Rodízio", icone: "🍣" },
+  { id: "viagem-bate-volta", titulo: "Viagem Bate-Volta", icone: "🚗" }
+];
 let refreshInterval;
 let countdown = 10;
 let countdownTimer;
@@ -231,6 +249,27 @@ function renderResults(data) {
   history.forEach((submission, index) => {
     const isNewest = index === 0;
     
+    // Reconstrói a lista de encontros por extenso
+    let itemsText = [];
+    
+    // Se o envio estiver no novo formato (e = array de índices, c = custom)
+    if (submission.e && Array.isArray(submission.e) && submission.e.length > 0 && typeof submission.e[0] === 'number') {
+      submission.e.forEach(idx => {
+        const option = OPCOES_ENCONTROS[idx];
+        if (option) {
+          itemsText.push(`${option.icone} ${option.titulo}`);
+        }
+      });
+      if (submission.c && Array.isArray(submission.c)) {
+        submission.c.forEach(text => {
+          itemsText.push(`✨ ${text}`);
+        });
+      }
+    } else if (submission.e && Array.isArray(submission.e)) {
+      // Se for formato antigo (já com strings)
+      itemsText = submission.e;
+    }
+    
     html += `
       <div class="submission-block" style="${index > 0 ? 'margin-top: 30px; border-top: 1px dashed var(--border-glass-hover); padding-top: 25px;' : ''}">
         <div class="results-header">
@@ -240,7 +279,7 @@ function renderResults(data) {
         <div class="items-list">
     `;
 
-    submission.e.forEach(item => {
+    itemsText.forEach(item => {
       const match = item.match(/^([\uD800-\uDBFF][\uDC00-\uDFFF]|\S)\s+(.*)$/);
       let emoji = "✨";
       let title = item;

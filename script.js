@@ -394,10 +394,21 @@ function saveSelectionsAndConfirm() {
       const minutes = String(now.getMinutes()).padStart(2, '0');
       const timestampShort = `${day}/${month} ${hours}:${minutes}`;
 
-      // Objeto da nova escolha individual
+      // Mapeia os encontros selecionados para seus índices em OPCOES_ENCONTROS para economizar espaço
+      const selectedIndices = Array.from(appState.selecionados).map(id => {
+        return OPCOES_ENCONTROS.findIndex(o => o.id === id);
+      }).filter(idx => idx !== -1);
+
+      // Ideias personalizadas (limita cada sugestão a 25 caracteres para evitar estourar URLs)
+      const customItems = appState.customSuggestions.map(text => {
+        return text.trim().substring(0, 25);
+      });
+
+      // Objeto da nova escolha individual compactada
       const newSubmission = {
         t: timestampShort,
-        e: todosEncontros
+        e: selectedIndices,
+        c: customItems
       };
 
       // Converter para Hex e salvar

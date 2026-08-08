@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Respostas dos Encontros ✨</title>
+  
+  <!-- Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=Playfair+Display:ital,wght@0,600;0,700;1,600&display=swap" rel="stylesheet">
+  
+  <!-- Lucide Icons CDN -->
+  <script src="https://unpkg.com/lucide@latest"></script>
+  
+  <!-- Styles -->
+  <link rel="stylesheet" href="styles.css">
+  <style>
+    /* Specific styles for Results page */
+    .results-card {
+      background: var(--bg-glass);
+      border: 1px solid var(--border-glass-hover);
+      border-radius: var(--radius-lg);
+      padding: 35px;
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      box-shadow: var(--shadow-lg);
+      animation: fadeInUp 0.8s ease-out;
+      margin-top: 20px;
+    }
+
+    .results-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 25px;
+      border-bottom: 1px solid var(--border-glass);
+      padding-bottom: 15px;
+      flex-wrap: wrap;
+      gap: 15px;
+    }
+
+    .results-title {
+      font-family: var(--font-serif);
+      font-size: 1.6rem;
+      background: linear-gradient(135deg, #fff 30%, var(--accent-rose) 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    .timestamp {
+      font-size: 0.85rem;
+      color: var(--accent-rose);
+      background: rgba(255, 107, 139, 0.1);
+      border: 1px solid rgba(255, 107, 139, 0.2);
+      padding: 6px 12px;
+      border-radius: 20px;
+      font-weight: 600;
+    }
+
+    .items-list {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      margin-bottom: 30px;
+    }
+
+    .item-row {
+      display: flex;
+      align-items: center;
+      gap: 15px;
+      background: rgba(255, 255, 255, 0.02);
+      border: 1px solid var(--border-glass);
+      padding: 16px 20px;
+      border-radius: var(--radius-md);
+      transition: var(--transition-smooth);
+    }
+
+    .item-row:hover {
+      background: rgba(255, 255, 255, 0.04);
+      border-color: var(--border-glass-hover);
+      transform: translateX(4px);
+    }
+
+    .item-icon {
+      font-size: 1.5rem;
+    }
+
+    .item-text {
+      font-size: 1.05rem;
+      font-weight: 500;
+      color: var(--text-primary);
+    }
+
+    .no-results {
+      text-align: center;
+      padding: 50px 20px;
+      color: var(--text-secondary);
+    }
+
+    .no-results i {
+      width: 48px;
+      height: 48px;
+      color: var(--text-muted);
+      margin-bottom: 15px;
+    }
+
+    .actions-bar {
+      display: flex;
+      gap: 15px;
+      justify-content: center;
+      margin-top: 25px;
+    }
+
+    .pulse-green {
+      box-shadow: 0 0 15px rgba(81, 207, 102, 0.2);
+    }
+
+    /* Auto-refresh indicator */
+    .refresh-indicator {
+      font-size: 0.8rem;
+      color: var(--text-muted);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      margin-top: 15px;
+    }
+  </style>
+</head>
+<body>
+  <!-- Background Canvas for Floating Heart Particles -->
+  <canvas id="particles-canvas"></canvas>
+
+  <div class="app-container">
+    <header class="app-header">
+      <div class="badge">PREFERÊNCIAS ENCONTRADAS ✨</div>
+      <h1 class="title">Do que ela gosta?</h1>
+      <p class="subtitle">Aqui estão listadas as atividades que ela selecionou. Excelente para planejar o convite! 😉</p>
+    </header>
+
+    <main class="app-main">
+      <div class="results-card" id="results-card">
+        <!-- Content dynamically injected via JS -->
+        <div class="no-results">
+          <i data-lucide="loader" class="icon-spin"></i>
+          <p>Carregando escolhas...</p>
+        </div>
+      </div>
+
+      <div class="actions-bar">
+        <a href="index.html" class="btn btn-secondary">
+          <i data-lucide="arrow-left"></i> Voltar à Página
+        </a>
+        <button id="refresh-btn" class="btn btn-primary btn-pulse">
+          <i data-lucide="refresh-cw"></i> Atualizar Agora
+        </button>
+      </div>
+
+      <div class="refresh-indicator">
+        <i data-lucide="clock" style="width: 14px; height: 14px;"></i>
+        <span id="countdown-text">Próxima atualização em 10s</span>
+      </div>
+    </main>
+  </div>
+
+  <!-- Scripts -->
+  <script src="respostas.js"></script>
+</body>
+</html>

@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Nossos Próximos Encontros ✨</title>
+  <!-- SEO & Social Meta Tags -->
+  <meta name="description" content="Um jeito simples e divertido de escolhermos nossos próximos momentos juntos.">
+  <meta property="og:title" content="Nossos Próximos Encontros ✨">
+  <meta property="og:description" content="Escolha as melhores opções e bora marcar!">
+  <meta property="og:type" content="website">
+  
+  <!-- Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=Playfair+Display:ital,wght@0,600;0,700;1,600&display=swap" rel="stylesheet">
+  
+  <!-- Lucide Icons CDN -->
+  <script src="https://unpkg.com/lucide@latest"></script>
+  
+  <!-- Styles -->
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <!-- Background Canvas for Floating Heart Particles -->
+  <canvas id="particles-canvas"></canvas>
+
+  <div class="app-container">
+    <header class="app-header">
+      <div class="badge">DESCOBRINDO PREFERÊNCIAS ✨</div>
+      <h1 class="title">Quais dessas coisas você gosta de fazer?</h1>
+      <p class="subtitle">Selecione todas as opções que você mais curte. Assim posso planejar algo incrível para nós! 😉</p>
+    </header>
+
+    <main class="app-main">
+      <!-- Dates Grid -->
+      <div class="dates-grid" id="dates-grid">
+        <!-- Cards will be dynamically rendered via JS to keep index.html clean and easily configurable -->
+      </div>
+
+      <!-- Custom Date Input Section -->
+      <div class="custom-date-section">
+        <div class="custom-date-card">
+          <div class="custom-date-header">
+            <i data-lucide="sparkles" class="custom-icon"></i>
+            <h3>Alguma outra ideia em mente?</h3>
+          </div>
+          <p>Digite aqui se tiver outra sugestão de encontro que queira fazer:</p>
+          <div class="input-group">
+            <input type="text" id="custom-date-input" placeholder="Ex: Piquenique no jardim botânico..." maxlength="100">
+            <button id="add-custom-btn" class="btn btn-secondary">
+              <i data-lucide="plus"></i> Adicionar
+            </button>
+          </div>
+          <!-- Custom items list container -->
+          <div id="custom-items-container" class="custom-items-tags"></div>
+        </div>
+      </div>
+    </main>
+
+    <!-- Floating bottom bar (visible when 1+ dates selected) -->
+    <footer class="bottom-bar" id="bottom-bar">
+      <div class="bottom-bar-content">
+        <div class="selection-status">
+          <span class="count-badge" id="selected-count">0</span>
+          <span class="status-text" id="status-text">encontro selecionado</span>
+        </div>
+        <button id="send-btn" class="btn btn-primary btn-pulse">
+          <span>Eu curtiria fazer isso!</span>
+          <i data-lucide="heart" class="icon-send"></i>
+        </button>
+      </div>
+    </footer>
+  </div>
+
+  <!-- Success Modal -->
+  <div id="success-modal" class="modal-overlay">
+    <div class="modal-card">
+      <div class="modal-heart-icon">✨</div>
+      <h2>Escolhas Enviadas!</h2>
+      <p>Obrigado! Suas sugestões foram salvas com sucesso. Agora é só aguardar para o convite ser feito! 😉</p>
+      <button id="close-modal-btn" class="btn btn-primary">Entendido</button>
+    </div>
+  </div>
+
+  <!-- Scripts -->
+  <script src="script.js"></script>
+</body>
+</html>

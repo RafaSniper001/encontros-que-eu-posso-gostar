@@ -433,10 +433,7 @@ function saveSelectionsAndConfirm() {
             : `/api/proxy?url=${encodeURIComponent(targetUpdateUrl)}`;
 
           fetch(updateProxyUrl, {
-            method: "POST",
-            headers: {
-              "Content-Length": "0"
-            }
+            method: "POST"
           })
           .then(() => console.log("Histórico atualizado com sucesso no KeyVal."))
           .catch(err => console.error("Erro ao salvar histórico:", err));

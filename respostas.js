@@ -34,11 +34,11 @@ function fetchResults() {
     lucide.createIcons();
   }
 
-  const targetUrl = `https://keyvalue.immanuel.co/api/KeyVal/GetValue/${APP_KEY}/escolhas`;
+  const targetUrl = `https://keyvalue.immanuel.co/api/KeyVal/GetValue/${APP_KEY}/escolhas?t=${Date.now()}`;
   const isLocal = window.location.protocol === 'file:';
   const proxyUrl = isLocal 
     ? `https://api.allorigins.win/raw?url=${encodeURIComponent(targetUrl)}`
-    : `/api/proxy?url=${encodeURIComponent(targetUrl)}`;
+    : `/api/proxy?url=${encodeURIComponent(targetUrl)}&t=${Date.now()}`;
   
   fetch(proxyUrl)
     .then(response => response.text())

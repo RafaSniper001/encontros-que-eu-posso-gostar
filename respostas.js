@@ -34,44 +34,145 @@ function fetchResults() {
     lucide.createIcons();
   }
 
-  const targetUrl = `https://keyvalue.immanuel.co/api/KeyVal/GetValue/${APP_KEY}/escolhas?t=${Date.now()}`;
   const isLocal = window.location.protocol === 'file:';
-  const proxyUrl = isLocal 
-    ? `https://api.allorigins.win/raw?url=${encodeURIComponent(targetUrl)}`
-    : `/api/proxy?url=${encodeURIComponent(targetUrl)}&t=${Date.now()}`;
   
-  fetch(proxyUrl)
+  // Criamos as URLs para as 5 chaves de escolhas individuais
+  const fetchPromises = [1, 2, 3, 4, 5].map(idx => {
+    const targetUrl = `https://keyvalue.immanuel.co/api/KeyVal/GetValue/${APP_KEY}/escolhas_${idx}?t=${Date.now()}`;
+    const proxyUrl = isLocal 
+      ? `https://api.allorigins.win/raw?url=${encodeURIComponent(targetUrl)}`
+      : `/api/proxy?url=${encodeURIComponent(targetUrl)}&t=${Date.now()}`;
+      
+    return fetch(proxyUrl)
+      .then(response => response.text())
+      .then(text => {
+        let cleanText = text.trim();
+        if (cleanText.startsWith('"') && cleanText.endsWith('"')) {
+          try {
+            cleanText = JSON.parse(cleanText);
+          } catch (e) {}
+        }
+        
+        if (!cleanText || cleanText === '""' || cleanText === 'Not Found') {
+          return null;
+        }
+
+        try {
+          // Decode from Hex
+          const bytes = new Uint8Array(cleanText.match(/.{1,2}/g).map(byte => parseInt(byte, 16)));
+          const decoder = new TextDecoder();
+          const decodedStr = decoder.decode(bytes);
+          return JSON.parse(decodedStr);
+        } catch (e) {
+          console.error(`Erro ao decodificar item ${idx}:`, e);
+          return null;
+        }
+      })
+      .catch(err => {
+        console.error(`Erro ao buscar item ${idx}:`, err);
+        return null;
+      });
+  });
+
+  // Também buscamos a chave 'escolhas' (antiga) para migração
+  const targetOldUrl = `https://keyvalue.immanuel.co/api/KeyVal/GetValue/${APP_KEY}/escolhas?t=${Date.now()}`;
+  const oldProxyUrl = isLocal 
+    ? `https://api.allorigins.win/raw?url=${encodeURIComponent(targetOldUrl)}`
+    : `/api/proxy?url=${encodeURIComponent(targetOldUrl)}&t=${Date.now()}`;
+    
+  const oldFetch = fetch(oldProxyUrl)
     .then(response => response.text())
     .then(text => {
       let cleanText = text.trim();
-      // Remove double quotes wrapping from string if present
       if (cleanText.startsWith('"') && cleanText.endsWith('"')) {
         try {
           cleanText = JSON.parse(cleanText);
         } catch (e) {}
       }
       
-      // Decode from Hex (UTF-8 safe)
-      let jsonStr;
+      if (!cleanText || cleanText === '""' || cleanText === 'Not Found') {
+        return null;
+      }
+
       try {
         const bytes = new Uint8Array(cleanText.match(/.{1,2}/g).map(byte => parseInt(byte, 16)));
         const decoder = new TextDecoder();
-        jsonStr = decoder.decode(bytes);
+        const decodedStr = decoder.decode(bytes);
+        const parsed = JSON.parse(decodedStr);
+        
+        if (Array.isArray(parsed)) {
+          return parsed;
+        }
+        if (parsed && parsed.encontros) {
+          return [{
+            t: parsed.timestamp || "Horário Indisponível",
+            e: parsed.encontros
+          }];
+        }
+        return null;
       } catch (e) {
-        jsonStr = cleanText;
+        return null;
       }
-      
-      const data = typeof jsonStr === 'string' ? JSON.parse(jsonStr) : jsonStr;
+    })
+    .catch(() => null);
 
-      // Se não há dados válidos (suporta tanto array de histórico quanto formato antigo)
-      const hasHistory = Array.isArray(data) && data.length > 0;
-      const hasOldFormat = data && data.encontros && data.encontros.length > 0;
+  Promise.all([...fetchPromises, oldFetch])
+    .then(results => {
+      let history = [];
       
-      if (!hasHistory && !hasOldFormat) {
+      // Os primeiros 5 itens são individuais
+      results.slice(0, 5).forEach(item => {
+        if (item && item.t && item.e) {
+          history.push(item);
+        }
+      });
+      
+      // O último item é o histórico antigo
+      const oldItem = results[5];
+      if (oldItem) {
+        if (Array.isArray(oldItem)) {
+          history.push(...oldItem);
+        } else {
+          history.push(oldItem);
+        }
+      }
+
+      // Remover duplicados por timestamp e encontros
+      const uniqueHistory = [];
+      const seen = new Set();
+      history.forEach(item => {
+        const key = `${item.t}_${item.e.join(',')}`;
+        if (!seen.has(key)) {
+          seen.add(key);
+          uniqueHistory.push(item);
+        }
+      });
+
+      if (uniqueHistory.length === 0) {
         renderNoResults();
         return;
       }
-      renderResults(data);
+
+      // Ordenar cronologicamente (antigos primeiro) para que renderResults.reverse() coloque os novos no topo
+      const parseTimestamp = (tStr) => {
+        if (!tStr || tStr === "Horário Indisponível") return new Date(0);
+        try {
+          const match = tStr.match(/^(\d{2})\/(\d{2})(?:\/(\d{4}))?\s+(\d{2}):(\d{2})/);
+          if (match) {
+            const day = parseInt(match[1]);
+            const month = parseInt(match[2]) - 1;
+            const year = match[3] ? parseInt(match[3]) : new Date().getFullYear();
+            const hours = parseInt(match[4]);
+            const minutes = parseInt(match[5]);
+            return new Date(year, month, day, hours, minutes);
+          }
+        } catch (e) {}
+        return new Date(0);
+      };
+
+      uniqueHistory.sort((a, b) => parseTimestamp(a.t) - parseTimestamp(b.t));
+
+      renderResults(uniqueHistory);
     })
     .catch(err => {
       console.error(err);

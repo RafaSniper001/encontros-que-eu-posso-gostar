@@ -63,8 +63,11 @@ function fetchResults() {
       
       const data = typeof jsonStr === 'string' ? JSON.parse(jsonStr) : jsonStr;
 
-      // Se não há dados válidos
-      if (!data || !data.encontros || data.encontros.length === 0) {
+      // Se não há dados válidos (suporta tanto array de histórico quanto formato antigo)
+      const hasHistory = Array.isArray(data) && data.length > 0;
+      const hasOldFormat = data && data.encontros && data.encontros.length > 0;
+      
+      if (!hasHistory && !hasOldFormat) {
         renderNoResults();
         return;
       }

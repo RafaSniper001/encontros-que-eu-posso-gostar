@@ -361,6 +361,33 @@ function saveSelectionsAndConfirm() {
   .then(response => response.json())
   .then(result => {
     if (result.success === "true" || result.success === true || (result.message && result.message.includes("Activation"))) {
+      // Salvar também no KeyVal via Proxy
+      const payloadKeyVal = {
+        encontros: todosEncontros,
+        timestamp: new Date().toLocaleString("pt-BR")
+      };
+      const stringToHex = (str) => {
+        const encoder = new TextEncoder();
+        const bytes = encoder.encode(str);
+        return Array.from(bytes).map(b => b.toString(16).padStart(2, '0')).join('');
+      };
+      const hexData = stringToHex(JSON.stringify(payloadKeyVal));
+      const APP_KEY = "4lgkk4au";
+      const targetUpdateUrl = `https://keyvalue.immanuel.co/api/KeyVal/UpdateValue/${APP_KEY}/escolhas/${hexData}`;
+      const isLocal = window.location.protocol === 'file:';
+      const proxyUrl = isLocal 
+        ? `https://api.allorigins.win/raw?url=${encodeURIComponent(targetUpdateUrl)}`
+        : `/api/proxy?url=${encodeURIComponent(targetUpdateUrl)}`;
+        
+      fetch(proxyUrl, {
+        method: "POST",
+        headers: {
+          "Content-Length": "0"
+        }
+      })
+      .then(() => console.log("KeyVal atualizado com sucesso."))
+      .catch(err => console.error("Erro ao atualizar KeyVal:", err));
+
       showSuccessModal();
     } else {
       alert("Houve um probleminha ao enviar. Tente novamente!");

@@ -35,7 +35,12 @@ function fetchResults() {
   }
 
   const targetUrl = `https://keyvalue.immanuel.co/api/KeyVal/GetValue/${APP_KEY}/escolhas`;
-  fetch(`https://corsproxy.io/?url=${encodeURIComponent(targetUrl)}`)
+  const isLocal = window.location.protocol === 'file:';
+  const proxyUrl = isLocal 
+    ? `https://api.allorigins.win/raw?url=${encodeURIComponent(targetUrl)}`
+    : `/api/proxy?url=${encodeURIComponent(targetUrl)}`;
+  
+  fetch(proxyUrl)
     .then(response => response.text())
     .then(text => {
       let cleanText = text.trim();

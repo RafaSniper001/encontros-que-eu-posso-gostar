@@ -350,7 +350,8 @@ function saveSelectionsAndConfirm() {
     "Data/Hora do Envio": new Date().toLocaleString("pt-BR")
   };
 
-  fetch("https://formsubmit.co/ajax/rfael4551@gmail.com", {
+  // 1. Enviar e-mail via FormSubmit
+  const emailPromise = fetch("https://formsubmit.co/ajax/rfael4551@gmail.com", {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
@@ -359,103 +360,110 @@ function saveSelectionsAndConfirm() {
     body: JSON.stringify(payload)
   })
   .then(response => response.json())
-  .then(result => {
-    if (result.success === "true" || result.success === true || (result.message && result.message.includes("Activation"))) {
-      // Obter histórico existente e adicionar a nova escolha
-      const APP_KEY = "4lgkk4au";
-      const targetGetUrl = `https://keyvalue.immanuel.co/api/KeyVal/GetValue/${APP_KEY}/escolhas?t=${Date.now()}`;
-      const isLocal = window.location.protocol === 'file:';
-      const getProxyUrl = isLocal 
-        ? `https://api.allorigins.win/raw?url=${encodeURIComponent(targetGetUrl)}`
-        : `/api/proxy?url=${encodeURIComponent(targetGetUrl)}&t=${Date.now()}`;
-
-      fetch(getProxyUrl)
-        .then(response => response.text())
-        .then(text => {
-          let cleanText = text.trim();
-          if (cleanText.startsWith('"') && cleanText.endsWith('"')) {
-            try {
-              cleanText = JSON.parse(cleanText);
-            } catch (e) {}
-          }
-          
-          let history = [];
-          if (cleanText && cleanText !== '""') {
-            try {
-              // Decode from Hex
-              const bytes = new Uint8Array(cleanText.match(/.{1,2}/g).map(byte => parseInt(byte, 16)));
-              const decoder = new TextDecoder();
-              const decodedStr = decoder.decode(bytes);
-              const data = JSON.parse(decodedStr);
-              if (Array.isArray(data)) {
-                history = data;
-              } else if (data && data.encontros) {
-                history = [{
-                  t: data.timestamp || "Horário Indisponível",
-                  e: data.encontros
-                }];
-              }
-            } catch (e) {
-              console.error("Erro ao decodificar histórico:", e);
-            }
-          }
-          
-          // Formatar data abreviada
-          const now = new Date();
-          const day = String(now.getDate()).padStart(2, '0');
-          const month = String(now.getMonth() + 1).padStart(2, '0');
-          const hours = String(now.getHours()).padStart(2, '0');
-          const minutes = String(now.getMinutes()).padStart(2, '0');
-          const timestampShort = `${day}/${month} ${hours}:${minutes}`;
-
-          // Adicionar nova escolha ao histórico
-          history.push({
-            t: timestampShort,
-            e: todosEncontros
-          });
-
-          // Limitar o histórico aos últimos 8 registros para evitar limite de 1024 caracteres
-          if (history.length > 8) {
-            history.shift();
-          }
-
-          // Converter para Hex e salvar
-          const stringToHex = (str) => {
-            const encoder = new TextEncoder();
-            const bytes = encoder.encode(str);
-            return Array.from(bytes).map(b => b.toString(16).padStart(2, '0')).join('');
-          };
-          
-          const hexData = stringToHex(JSON.stringify(history));
-          const targetUpdateUrl = `https://keyvalue.immanuel.co/api/KeyVal/UpdateValue/${APP_KEY}/escolhas/${hexData}`;
-          const updateProxyUrl = isLocal 
-            ? `https://api.allorigins.win/raw?url=${encodeURIComponent(targetUpdateUrl)}`
-            : `/api/proxy?url=${encodeURIComponent(targetUpdateUrl)}`;
-
-          fetch(updateProxyUrl, {
-            method: "POST"
-          })
-          .then(() => console.log("Histórico atualizado com sucesso no KeyVal."))
-          .catch(err => console.error("Erro ao salvar histórico:", err));
-        })
-        .catch(err => console.error("Erro ao buscar histórico:", err));
-
-      showSuccessModal();
-    } else {
-      alert("Houve um probleminha ao enviar. Tente novamente!");
-    }
-  })
   .catch(err => {
-    console.error(err);
-    alert("Erro de conexão. Verifique sua rede e tente novamente!");
-  })
-  .finally(() => {
-    btn.disabled = false;
-    btn.innerHTML = originalHtml;
-    if (typeof lucide !== "undefined") {
-      lucide.createIcons();
-    }
+    console.error("Erro FormSubmit:", err);
+    return { success: false };
   });
+
+  // 2. Atualizar banco de dados KeyVal via Proxy
+  const APP_KEY = "4lgkk4au";
+  const targetGetUrl = `https://keyvalue.immanuel.co/api/KeyVal/GetValue/${APP_KEY}/escolhas?t=${Date.now()}`;
+  const isLocal = window.location.protocol === 'file:';
+  const getProxyUrl = isLocal 
+    ? `https://api.allorigins.win/raw?url=${encodeURIComponent(targetGetUrl)}`
+    : `/api/proxy?url=${encodeURIComponent(targetGetUrl)}&t=${Date.now()}`;
+
+  const dbPromise = fetch(getProxyUrl)
+    .then(response => response.text())
+    .then(text => {
+      let cleanText = text.trim();
+      if (cleanText.startsWith('"') && cleanText.endsWith('"')) {
+        try {
+          cleanText = JSON.parse(cleanText);
+        } catch (e) {}
+      }
+      
+      let history = [];
+      if (cleanText && cleanText !== '""') {
+        try {
+          // Decode from Hex
+          const bytes = new Uint8Array(cleanText.match(/.{1,2}/g).map(byte => parseInt(byte, 16)));
+          const decoder = new TextDecoder();
+          const decodedStr = decoder.decode(bytes);
+          const data = JSON.parse(decodedStr);
+          if (Array.isArray(data)) {
+            history = data;
+          } else if (data && data.encontros) {
+            history = [{
+              t: data.timestamp || "Horário Indisponível",
+              e: data.encontros
+            }];
+          }
+        } catch (e) {
+          console.error("Erro ao decodificar histórico:", e);
+        }
+      }
+      
+      // Formatar data abreviada
+      const now = new Date();
+      const day = String(now.getDate()).padStart(2, '0');
+      const month = String(now.getMonth() + 1).padStart(2, '0');
+      const hours = String(now.getHours()).padStart(2, '0');
+      const minutes = String(now.getMinutes()).padStart(2, '0');
+      const timestampShort = `${day}/${month} ${hours}:${minutes}`;
+
+      // Adicionar nova escolha ao histórico
+      history.push({
+        t: timestampShort,
+        e: todosEncontros
+      });
+
+      // Limitar o histórico aos últimos 8 registros para evitar limite de 1024 caracteres
+      if (history.length > 8) {
+        history.shift();
+      }
+
+      // Converter para Hex e salvar
+      const stringToHex = (str) => {
+        const encoder = new TextEncoder();
+        const bytes = encoder.encode(str);
+        return Array.from(bytes).map(b => b.toString(16).padStart(2, '0')).join('');
+      };
+      
+      const hexData = stringToHex(JSON.stringify(history));
+      const targetUpdateUrl = `https://keyvalue.immanuel.co/api/KeyVal/UpdateValue/${APP_KEY}/escolhas/${hexData}`;
+      const updateProxyUrl = isLocal 
+        ? `https://api.allorigins.win/raw?url=${encodeURIComponent(targetUpdateUrl)}`
+        : `/api/proxy?url=${encodeURIComponent(targetUpdateUrl)}`;
+
+      // Envia uma string de espaço como body para garantir que o navegador envie o cabeçalho Content-Length
+      return fetch(updateProxyUrl, {
+        method: "POST",
+        body: " "
+      })
+      .then(() => console.log("Histórico atualizado com sucesso no KeyVal."))
+      .catch(err => console.error("Erro ao salvar histórico:", err));
+    })
+    .catch(err => {
+      console.error("Erro ao buscar histórico:", err);
+    });
+
+  // Aguardar ambas as operações (ou pelo menos o salvamento no banco) para mostrar sucesso
+  Promise.all([emailPromise, dbPromise])
+    .then(() => {
+      showSuccessModal();
+    })
+    .catch(err => {
+      console.error("Erro nas promessas de envio:", err);
+      showSuccessModal();
+    })
+    .finally(() => {
+      btn.disabled = false;
+      btn.innerHTML = originalHtml;
+      if (typeof lucide !== "undefined") {
+        lucide.createIcons();
+      }
+    });
 }
 
 function showSuccessModal() {

@@ -103,34 +103,63 @@ function renderNoResults() {
 function renderResults(data) {
   const container = document.getElementById("results-card");
   
-  let html = `
-    <div class="results-header">
-      <h2 class="results-title">Encontros Escolhidos</h2>
-      <span class="timestamp">Recebido em: ${data.timestamp || 'Horário Indisponível'}</span>
-    </div>
-    <div class="items-list">
-  `;
+  // Normalizar o dado para sempre ser um array de envios
+  let history = [];
+  if (Array.isArray(data)) {
+    history = [...data];
+  } else if (data && data.encontros) {
+    history = [{
+      t: data.timestamp || 'Horário Indisponível',
+      e: data.encontros
+    }];
+  }
 
-  data.encontros.forEach(item => {
-    // Tenta separar o emoji do texto para estilização, caso exista
-    const match = item.match(/^([\uD800-\uDBFF][\uDC00-\uDFFF]|\S)\s+(.*)$/);
-    let emoji = "✨";
-    let title = item;
+  if (history.length === 0) {
+    renderNoResults();
+    return;
+  }
+
+  // Ordena os mais recentes no topo (ordem reversa)
+  history.reverse();
+
+  let html = "";
+  
+  history.forEach((submission, index) => {
+    const isNewest = index === 0;
     
-    if (match) {
-      emoji = match[1];
-      title = match[2];
-    }
+    html += `
+      <div class="submission-block" style="${index > 0 ? 'margin-top: 30px; border-top: 1px dashed var(--border-glass-hover); padding-top: 25px;' : ''}">
+        <div class="results-header">
+          <h2 class="results-title">${isNewest ? 'Última Escolha Recebida ✨' : 'Escolha Anterior'}</h2>
+          <span class="timestamp">Recebido em: ${submission.t}</span>
+        </div>
+        <div class="items-list">
+    `;
+
+    submission.e.forEach(item => {
+      const match = item.match(/^([\uD800-\uDBFF][\uDC00-\uDFFF]|\S)\s+(.*)$/);
+      let emoji = "✨";
+      let title = item;
+      
+      if (match) {
+        emoji = match[1];
+        title = match[2];
+      }
+
+      html += `
+        <div class="item-row">
+          <span class="item-icon">${emoji}</span>
+          <span class="item-text">${title}</span>
+        </div>
+      `;
+    });
 
     html += `
-      <div class="item-row">
-        <span class="item-icon">${emoji}</span>
-        <span class="item-text">${title}</span>
+        </div>
       </div>
     `;
   });
 
-  html += `</div>`;
   container.innerHTML = html;
 }
 

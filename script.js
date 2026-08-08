@@ -361,32 +361,87 @@ function saveSelectionsAndConfirm() {
   .then(response => response.json())
   .then(result => {
     if (result.success === "true" || result.success === true || (result.message && result.message.includes("Activation"))) {
-      // Salvar também no KeyVal via Proxy
-      const payloadKeyVal = {
-        encontros: todosEncontros,
-        timestamp: new Date().toLocaleString("pt-BR")
-      };
-      const stringToHex = (str) => {
-        const encoder = new TextEncoder();
-        const bytes = encoder.encode(str);
-        return Array.from(bytes).map(b => b.toString(16).padStart(2, '0')).join('');
-      };
-      const hexData = stringToHex(JSON.stringify(payloadKeyVal));
+      // Obter histórico existente e adicionar a nova escolha
       const APP_KEY = "4lgkk4au";
-      const targetUpdateUrl = `https://keyvalue.immanuel.co/api/KeyVal/UpdateValue/${APP_KEY}/escolhas/${hexData}`;
+      const targetGetUrl = `https://keyvalue.immanuel.co/api/KeyVal/GetValue/${APP_KEY}/escolhas?t=${Date.now()}`;
       const isLocal = window.location.protocol === 'file:';
-      const proxyUrl = isLocal 
-        ? `https://api.allorigins.win/raw?url=${encodeURIComponent(targetUpdateUrl)}`
-        : `/api/proxy?url=${encodeURIComponent(targetUpdateUrl)}`;
-        
-      fetch(proxyUrl, {
-        method: "POST",
-        headers: {
-          "Content-Length": "0"
-        }
-      })
-      .then(() => console.log("KeyVal atualizado com sucesso."))
-      .catch(err => console.error("Erro ao atualizar KeyVal:", err));
+      const getProxyUrl = isLocal 
+        ? `https://api.allorigins.win/raw?url=${encodeURIComponent(targetGetUrl)}`
+        : `/api/proxy?url=${encodeURIComponent(targetGetUrl)}&t=${Date.now()}`;
+
+      fetch(getProxyUrl)
+        .then(response => response.text())
+        .then(text => {
+          let cleanText = text.trim();
+          if (cleanText.startsWith('"') && cleanText.endsWith('"')) {
+            try {
+              cleanText = JSON.parse(cleanText);
+            } catch (e) {}
+          }
+          
+          let history = [];
+          if (cleanText && cleanText !== '""') {
+            try {
+              // Decode from Hex
+              const bytes = new Uint8Array(cleanText.match(/.{1,2}/g).map(byte => parseInt(byte, 16)));
+              const decoder = new TextDecoder();
+              const decodedStr = decoder.decode(bytes);
+              const data = JSON.parse(decodedStr);
+              if (Array.isArray(data)) {
+                history = data;
+              } else if (data && data.encontros) {
+                history = [{
+                  t: data.timestamp || "Horário Indisponível",
+                  e: data.encontros
+                }];
+              }
+            } catch (e) {
+              console.error("Erro ao decodificar histórico:", e);
+            }
+          }
+          
+          // Formatar data abreviada
+          const now = new Date();
+          const day = String(now.getDate()).padStart(2, '0');
+          const month = String(now.getMonth() + 1).padStart(2, '0');
+          const hours = String(now.getHours()).padStart(2, '0');
+          const minutes = String(now.getMinutes()).padStart(2, '0');
+          const timestampShort = `${day}/${month} ${hours}:${minutes}`;
+
+          // Adicionar nova escolha ao histórico
+          history.push({
+            t: timestampShort,
+            e: todosEncontros
+          });
+
+          // Limitar o histórico aos últimos 8 registros para evitar limite de 1024 caracteres
+          if (history.length > 8) {
+            history.shift();
+          }
+
+          // Converter para Hex e salvar
+          const stringToHex = (str) => {
+            const encoder = new TextEncoder();
+            const bytes = encoder.encode(str);
+            return Array.from(bytes).map(b => b.toString(16).padStart(2, '0')).join('');
+          };
+          
+          const hexData = stringToHex(JSON.stringify(history));
+          const targetUpdateUrl = `https://keyvalue.immanuel.co/api/KeyVal/UpdateValue/${APP_KEY}/escolhas/${hexData}`;
+          const updateProxyUrl = isLocal 
+            ? `https://api.allorigins.win/raw?url=${encodeURIComponent(targetUpdateUrl)}`
+            : `/api/proxy?url=${encodeURIComponent(targetUpdateUrl)}`;
+
+          fetch(updateProxyUrl, {
+            method: "POST",
+            headers: {
+              "Content-Length": "0"
+            }
+          })
+          .then(() => console.log("Histórico atualizado com sucesso no KeyVal."))
+          .catch(err => console.error("Erro ao salvar histórico:", err));
+        })
+        .catch(err => console.error("Erro ao buscar histórico:", err));
 
       showSuccessModal();
     } else {
